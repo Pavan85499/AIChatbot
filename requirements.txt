@@ -1,0 +1,6 @@
+flask
+langgraph
+mysql-connector-python
+psycopg2
+transformers
+torch
