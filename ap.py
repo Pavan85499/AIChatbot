@@ -1,297 +1,50 @@
-# from flask import Flask, render_template
-# from flask_sqlalchemy import SQLAlchemy
-# # from langgraph import nodes, edges
-# # from langgraph import Agent
-# # from langgraph import Agent, Task
-# # from langchain.llms import OpenAI
-# # from transformers import GPT2LMHeadModel, GPT2Tokenizer
-# import common
-# import langgraph as lg
-# import random
-# import importlib
-# nodes = importlib.import_module("langgraph.nodes")
-# edges = importlib.import_module("langgraph.edges")
-
-
-# # Define the chatbot flow using LangGraph
-# class SimpleChatBot:
-#     def __init__(self):
-#         # Create a LangGraph instance
-#         self.graph = lg.Graph()
-
-#         # Create nodes (representing conversation steps)
-#         self.node_greeting = nodes.TextNode("Hello! How can I help you today?")
-#         self.node_ask_name = nodes.TextNode("What is your name?")
-#         self.node_respond_name = nodes.TextNode("Nice to meet you, {name}!")
-#         self.node_farewell = nodes.TextNode("Goodbye! Have a great day!")
-
-#         # Create edges (defining the transitions between nodes)
-#         self.graph.add_edge(edges.TextEdge(self.node_greeting, self.node_ask_name, input_text="Hi"))
-#         self.graph.add_edge(edges.TextEdge(self.node_ask_name, self.node_respond_name, input_text="{name}"))
-#         self.graph.add_edge(edges.TextEdge(self.node_respond_name, self.node_farewell, input_text="bye"))
-        
-#     def run(self):
-#         print(self.node_greeting.text)  # Start with the greeting
-#         current_node = self.node_greeting
-        
-#         while True:
-#             user_input = input("> ").strip().lower()
-            
-#             # Find the next node based on user input
-#             next_node = None
-#             for edge in self.graph.edges(current_node):
-#                 if user_input in edge.input_text.lower():
-#                     next_node = edge.target_node
-#                     break
-
-#             if next_node:
-#                 if next_node == self.node_respond_name:
-#                     # If we're asking for the name, get the name from the user and pass it to the response
-#                     name = user_input.capitalize()
-#                     print(next_node.text.format(name=name))
-#                 else:
-#                     print(next_node.text)
-#                 current_node = next_node
-
-#             # If the user says "bye", end the chat
-#             if current_node == self.node_farewell:
-#                 break
-
-# if __name__ == "__main__":
-#     bot = SimpleChatBot()
-#     bot.run()
-
-# # Initialize the Flask app
-# app = Flask(__name__)
-
-# # Set up the database URI (SQLite example)
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///example.db'  # For SQLite
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Disable tracking modifications (optional)
-
-# # Initialize the database
-# db = SQLAlchemy(app)
-
-# # Define a model (this represents a table in the database)
-# class User(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     username = db.Column(db.String(120), unique=True, nullable=False)
-#     email = db.Column(db.String(120), unique=True, nullable=False)
-
-#     def __repr__(self):
-#         return f'<User {self.username}>'
-
-# # Route to retrieve information from the database
-# @app.route('/')
-# def home():
-#     # Query the database for all users
-#     users = User.query.all()  # This fetches all users from the User table
-#     return render_template('index.html', users=users)
-
-# # Create the database and tables (if they don't exist yet)
-# with app.app_context():
-#     db.create_all()
-
-# # @app.route('/')
-# # def index():
-   
-# #    return render_template("index.html")
-
-# if __name__ == '__main__':
-#    app.run(debug = True)
-   
-
-
-
-
-
-
-
-from flask import Flask, jsonify, request
-import langgraph as lg
-from transformers import pipeline
-import mysql.connector  # For MySQL
-# import psycopg2  # For PostgreSQL
-
+from flask import Flask, render_template, request
+import sqlite3 as sql
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+   return render_template('index.html')
 
+# @app.route('/enternew')
+# def new_student():
+#    return render_template('student.html')
 
-# Connect nodes in LangGraph
-graph = lg.Graph()
-graph.add_node(fetch_supplier_node)
-graph.add_node(summarize_supplier_node)
-graph.connect(fetch_supplier_node, summarize_supplier_node)
+# @app.route('/addrec',methods = ['POST', 'GET'])
+# def addrec():
+#    if request.method == 'POST':
+#       try:
+#          nm = request.form['nm']
+#          addr = request.form['add']
+#          city = request.form['city']
+#          pin = request.form['pin']
+         
+#          with sql.connect("database.db") as con:
+#             cur = con.cursor()
+            
+#             cur.execute("INSERT INTO students (name,addr,city,pin) 
+#                VALUES (?,?,?,?)",(nm,addr,city,pin) )
+            
+#             con.commit()
+#             msg = "Record successfully added"
+#       except:
+#          con.rollback()
+#          msg = "error in insert operation"
+      
+#       finally:
+#          return render_template("result.html",msg = msg)
+#          con.close()
 
-# MySQL Connection
-def connect_to_mysql():
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="your_password",
-        database="your_database"
-    )
-    return conn
-# Initialize the LangGraph
-db_conn = connect_to_mysql()  # Use the appropriate database connection
-fetch_supplier_node = FetchSupplierNode(db_conn)
+@app.route('/list')
+def list():
+   con = sql.connect("database.db")
+   con.row_factory = sql.Row
+   
+   cur = con.cursor()
+   cur.execute("select * from students")
+   
+   rows = cur.fetchall();
+   return render_template("list.html",rows = rows)
 
-
-# PostgreSQL Connection (uncomment if using PostgreSQL)
-# def connect_to_postgresql():
-#     conn = psycopg2.connect(
-#         dbname="your_database",
-#         user="your_user",
-#         password="your_password",
-#         host="localhost"
-#     )
-#     return conn
-
-# Fetch supplier data from the database
-def fetch_supplier_data(conn):
-    cursor = conn.cursor()
-    query = "SELECT supplier_name, supplier_info FROM suppliers"
-    cursor.execute(query)
-    result = cursor.fetchall()
-    cursor.close()
-    return result
-
-# Fetch product data from the database
-def fetch_product_data(conn):
-    cursor = conn.cursor()
-    query = "SELECT product_name, product_description FROM products"
-    cursor.execute(query)
-    result = cursor.fetchall()
-    cursor.close()
-    return result
-
-# Initialize the LangGraph
-db_conn = connect_to_mysql()  # Use the appropriate database connection
-
-class FetchSupplierNode(lg.Node):
-    def __init__(self, db_connection):
-        super().__init__()
-        self.db_connection = db_connection
-    
-    def run(self, input_data):
-        supplier_data = fetch_supplier_data(self.db_connection)
-        return {"supplier_data": supplier_data}
-    
-fetch_supplier_node = FetchSupplierNode(db_conn)
-
-
-class SummarizeSupplierNode(lg.Node):
-    def __init__(self, summarizer):
-        super().__init__()
-        self.summarizer = summarizer
-    
-    def run(self, input_data):
-        supplier_info = input_data["supplier_data"]
-        summaries = [summarize_text(info[1]) for info in supplier_info]  # Summarize supplier info
-        return {"summaries": summaries}
-
-summarize_supplier_node = SummarizeSupplierNode(summarizer)
-
-# Load the Hugging Face summarization model
-# summarizer = pipeline("summarization", model="facebook/bart-large-cnn")  # You can replace with other models like GPT-2
-
-# Function to summarize text using the model
-def summarize_text(text):
-    summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
-    return summary[0]['summary_text']
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    user_input = request.json.get('user_input', '')
-    
-    # Process user input to determine what action to take
-    if 'supplier' in user_input.lower():
-        # Run the LangGraph to fetch and summarize supplier data
-        graph_result = graph.run({})
-        summarized_supplier_data = graph_result["summaries"]
-        
-        return jsonify({
-            "response": summarized_supplier_data
-        })
-    else:
-        return jsonify({
-            "response": "I'm sorry, I can only provide supplier information. Try asking about suppliers."
-        })
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# @app.route('/query', methods=['POST'])
-# def query():
-#     user_input = request.json['query']
-#     response = agent.run(user_input)
-#     return jsonify({"response": response})
-
-# if __name__ == '__main__':
-#     app.run(debug=True)
-
-# Initialize agent
-# agent = ProductQueryAgent()
-
-# Define the LLM model
-# llm = OpenAI(model="text-davinci-003")
-
-# Define agent workflow
-# class ProductQueryAgent(Agent):
-#     def define_tasks(self):
-#         self.add_task("query_database", Task(query_database))
-#         self.add_task("summarize_data", Task(summarize_data))
-
-    # def query_database(self, user_input):
-        # SQL query to the database
-        # if "price" in user_input:
-        #     return "SELECT price FROM products WHERE product_name LIKE '%{}%'".format(user_input.split()[-1])
-        # return ""
-
-    # def summarize_data(self, data):
-        # Summarize or format data with the LLM
-        # return llm.generate(f"Summarize this data: {data}")
-
-
-# -------------Data Base Connector----------------
-# def fetch_product_price(product_name):
-#     conn = mysql.connector.connect(
-#         host="localhost", user="root", password="password", database="product_supplier"
-#     )
-#     cursor = conn.cursor()
-#     query = f"SELECT price FROM products WHERE product_name LIKE '%{product_name}%'"
-#     cursor.execute(query)
-#     result = cursor.fetchone()
-#     conn.close()
-#     return result[0] if result else None
-
-# ---------------LLM Summarizer----------------
-# def summarize_data(data):
-#     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-#     model = GPT2LMHeadModel.from_pretrained("gpt2")
-
-#     inputs = tokenizer.encode(data, return_tensors="pt")
-#     outputs = model.generate(inputs, max_length=100, num_return_sequences=1)
-#     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+if __name__ == '__main__':
+   app.run(debug = True)
