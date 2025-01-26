@@ -43,7 +43,7 @@ def list():
    cur = con.cursor()
    cur.execute("select * from students")
    
-   rows = cur.fetchall();
+   rows = cur.fetchall()
    return render_template("list.html",rows = rows)
 
 if __name__ == '__main__':
